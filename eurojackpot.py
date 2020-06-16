@@ -10,7 +10,8 @@ from datetime import datetime
 import os.path
 from os import path
 
-
+obj_list = []   
+filename = 'data_euro_custom.json'
 
 # URL: https://www.veikkaus.fi/api/draw-results/v1/games/EJACKPOT/draws/by-week/2020-W18
 # fetch the numbers and save them to a json database (data_euro.json in current directory)
@@ -89,10 +90,6 @@ def fetch():
         json.dump(obj_list, outfile)
     
  
-
-
-obj_list = []    
-    
 # read the numbers from the database  
 def readJSON():
     print("Loading items from JSON database...")
@@ -120,9 +117,7 @@ def readJSON():
             obj_list.append(obj)
     print('Items in database: {num}'.format(num=len(obj_list)))
 
-    
-    
-    
+      
 # compare the given numbers to the numbers loaded from the database
 def compareNumbers(pri, sec):
     pri_set = set(pri)
@@ -148,13 +143,8 @@ def compareNumbers(pri, sec):
         num_pri_str = ' '.join(str(e) for e in num_pri_set)
         num_sec_str = ' '.join(str(e) for e in num_sec_set)
         
-        # >=2+1 or 1+2
-        #if (pri_len > 1 and sec_len > 0) or (pri_len > 0 and sec_len > 1):
-        #    print('Results: {p}+{s}'.format(p=pri_len, s=sec_len))
-        #    print(date)
-        
-        # >=4+0
-        if pri_len > 2:
+        # >=3+0
+        if pri_len > 2 and returnPrize(pri_len, sec_len, prizes) > 0:
             print('Results: {p}+{s}'.format(p=pri_len, s=sec_len))
             print('Date: ' + date)
             print('Your numbers: {p} + {s}'.format(p=pri_str, s=sec_str))
@@ -231,7 +221,51 @@ def returnPrize(pri, sec, prizes):
         amount = prize['shareAmount'] / 100.0
     
     return amount
+
+
+# write to our own custom JSON file      
+def writeNumbers(pri, sec):
+    data = {}
+    data['numbers'] = []
+    if path.exists(filename) == True:
+        with open(filename) as json_file: 
+            data = json.load(json_file) 
+            temp = data['numbers']
+            x = {
+                "primary": pri,
+                "secondary": sec 
+            }
+            temp.append(x)
+    else:
+        data['numbers'].append({
+            "primary": pri,
+            "secondary": sec
+        })
+    with open(filename,'w') as f: 
+        json.dump(data, f, indent=4)
+
+
+# add custom numbers to a JSON file
+def addCustomNumbers():
+    # primary numbers
+    pri = [1, 2, 3, 4, 5]
+    # secondary "extra" numbers
+    sec = [1, 2]
+    writeNumbers(pri, sec)
+
     
+# load numbers from our own custom JSON file
+def loadNumbers():
+    print("Loading custom numbers...")
+
+    if path.exists(filename) == False:
+        addCustomNumbers()
+
+
+    with open(filename) as json_file: 
+        data = json.load(json_file) 
+        for d in data['numbers']:
+            compareNumbers(d['primary'], d['secondary'])  
         
     
 # if the database doesn't exist, create it
@@ -239,12 +273,6 @@ if path.exists("data_euro.json") == False:
     fetch()
 
 readJSON()
-
-# primary numbers
-pri = [1, 2, 3, 4, 5]
-#secondary "extra" numbers
-sec = [1, 2]
-compareNumbers(pri, sec)
-
+loadNumbers()
 
 
